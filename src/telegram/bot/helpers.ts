@@ -142,6 +142,72 @@ export function describeReplyTarget(msg: TelegramMessage) {
   };
 }
 
+/**
+ * Extract forwarded message origin info from Telegram message.
+ * Supports both new forward_origin API and legacy forward_from/forward_from_chat fields.
+ */
+export function describeForwardOrigin(msg: TelegramMessage): {
+  source: string;
+  date?: number;
+} | null {
+  const msgAny = msg as unknown as Record<string, unknown>;
+  const forwardOrigin = msgAny.forward_origin as
+    | {
+        type: string;
+        sender_user?: { first_name?: string; last_name?: string; username?: string; id?: number };
+        sender_user_name?: string;
+        sender_chat?: { title?: string; id?: number; username?: string };
+        chat?: { title?: string; id?: number; username?: string };
+        date?: number;
+      }
+    | undefined;
+  const forwardFrom = msgAny.forward_from as
+    | { first_name?: string; last_name?: string; username?: string; id?: number }
+    | undefined;
+  const forwardFromChat = msgAny.forward_from_chat as
+    | { title?: string; id?: number; username?: string; type?: string }
+    | undefined;
+  const forwardDate = msgAny.forward_date as number | undefined;
+
+  // Try newer forward_origin first
+  if (forwardOrigin) {
+    let source = "unknown source";
+    if (forwardOrigin.type === "user" && forwardOrigin.sender_user) {
+      const user = forwardOrigin.sender_user;
+      const name = [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
+      const username = user.username ? `@${user.username}` : undefined;
+      source = name && username ? `${name} (${username})` : name || username || `user:${user.id}`;
+    } else if (forwardOrigin.type === "hidden_user" && forwardOrigin.sender_user_name) {
+      source = forwardOrigin.sender_user_name;
+    } else if (forwardOrigin.type === "chat" && forwardOrigin.sender_chat) {
+      const chat = forwardOrigin.sender_chat;
+      source = chat.title || (chat.username ? `@${chat.username}` : `chat:${chat.id}`);
+    } else if (forwardOrigin.type === "channel" && forwardOrigin.chat) {
+      const chat = forwardOrigin.chat;
+      source = chat.title || (chat.username ? `@${chat.username}` : `channel:${chat.id}`);
+    }
+    return { source, date: forwardOrigin.date };
+  }
+
+  // Legacy forward_from_chat
+  if (forwardFromChat) {
+    const chat = forwardFromChat;
+    const source = chat.title || (chat.username ? `@${chat.username}` : `chat:${chat.id}`);
+    return { source, date: forwardDate };
+  }
+
+  // Legacy forward_from
+  if (forwardFrom) {
+    const user = forwardFrom;
+    const name = [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
+    const username = user.username ? `@${user.username}` : undefined;
+    const source = name && username ? `${name} (${username})` : name || username || `user:${user.id}`;
+    return { source, date: forwardDate };
+  }
+
+  return null;
+}
+
 export function extractTelegramLocation(msg: TelegramMessage): NormalizedLocation | null {
   const msgWithLocation = msg as {
     location?: TelegramLocation;

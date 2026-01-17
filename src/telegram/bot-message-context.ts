@@ -27,6 +27,7 @@ import {
   buildTelegramGroupFrom,
   buildTelegramGroupPeerId,
   buildTypingThreadParams,
+  describeForwardOrigin,
   describeReplyTarget,
   extractTelegramLocation,
   hasBotMention,
@@ -384,10 +385,16 @@ export const buildTelegramMessageContext = async ({
       : null;
 
   const replyTarget = describeReplyTarget(msg);
+  const forwardOrigin = describeForwardOrigin(msg);
   const replySuffix = replyTarget
     ? `\n\n[Replying to ${replyTarget.sender}${
         replyTarget.id ? ` id:${replyTarget.id}` : ""
       }]\n${replyTarget.body}\n[/Replying]`
+    : "";
+  const forwardPrefix = forwardOrigin
+    ? `[Forwarded from ${forwardOrigin.source}${
+        forwardOrigin.date ? ` at ${new Date(forwardOrigin.date * 1000).toISOString()}` : ""
+      }]\n`
     : "";
   const groupLabel = isGroup ? buildGroupLabel(msg, chatId, resolvedThreadId) : undefined;
   const senderName = buildSenderName(msg);
@@ -398,7 +405,7 @@ export const buildTelegramMessageContext = async ({
     channel: "Telegram",
     from: conversationLabel,
     timestamp: msg.date ? msg.date * 1000 : undefined,
-    body: `${bodyText}${replySuffix}`,
+    body: `${forwardPrefix}${bodyText}${replySuffix}`,
     chatType: isGroup ? "group" : "direct",
     sender: {
       name: senderName,
@@ -454,6 +461,8 @@ export const buildTelegramMessageContext = async ({
     ReplyToId: replyTarget?.id,
     ReplyToBody: replyTarget?.body,
     ReplyToSender: replyTarget?.sender,
+    ForwardedFrom: forwardOrigin?.source,
+    ForwardedDate: forwardOrigin?.date ? forwardOrigin.date * 1000 : undefined,
     Timestamp: msg.date ? msg.date * 1000 : undefined,
     WasMentioned: isGroup ? effectiveWasMentioned : undefined,
     MediaPath: allMedia[0]?.path,
@@ -479,6 +488,10 @@ export const buildTelegramMessageContext = async ({
     logVerbose(
       `telegram reply-context: replyToId=${replyTarget.id} replyToSender=${replyTarget.sender} replyToBody="${preview}"`,
     );
+  }
+
+  if (forwardOrigin && shouldLogVerbose()) {
+    logVerbose(`telegram forward-context: forwardedFrom="${forwardOrigin.source}"`);
   }
 
   if (!isGroup) {
