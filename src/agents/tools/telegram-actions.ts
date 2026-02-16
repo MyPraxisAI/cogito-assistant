@@ -97,9 +97,15 @@ export async function handleTelegramAction(
       required: true,
     });
     const messageId = readNumberParam(params, "messageId", {
-      required: true,
+      required: false,  // Schema declares Optional — graceful fallback instead of throw
       integer: true,
     });
+    if (messageId == null) {
+      return jsonResult({
+        ok: false,
+        warning: "Cannot react: no messageId available in this session context.",
+      });
+    }
     const { emoji, remove, isEmpty } = readReactionParams(params, {
       removeErrorMessage: "Emoji is required to remove a Telegram reaction.",
     });
