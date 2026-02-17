@@ -213,9 +213,15 @@ export async function handleTelegramAction(
       required: true,
     });
     const messageId = readNumberParam(params, "messageId", {
-      required: true,
+      required: false,
       integer: true,
     });
+    if (messageId == null) {
+      return jsonResult({
+        ok: false,
+        warning: "Cannot delete: no messageId provided.",
+      });
+    }
     const token = resolveTelegramToken(cfg, { accountId }).token;
     if (!token) {
       throw new Error(
@@ -237,9 +243,15 @@ export async function handleTelegramAction(
       required: true,
     });
     const messageId = readNumberParam(params, "messageId", {
-      required: true,
+      required: false,
       integer: true,
     });
+    if (messageId == null) {
+      return jsonResult({
+        ok: false,
+        warning: "Cannot edit: no messageId provided.",
+      });
+    }
     const content = readStringParam(params, "content", {
       required: true,
       allowEmpty: false,
