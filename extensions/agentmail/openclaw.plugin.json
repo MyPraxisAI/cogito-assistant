@@ -1,0 +1,9 @@
+{
+  "id": "agentmail",
+  "channels": ["agentmail"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
