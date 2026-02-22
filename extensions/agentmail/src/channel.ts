@@ -33,8 +33,13 @@ function looksLikeEmail(raw: string): boolean {
 export const agentmailPlugin: ChannelPlugin<ResolvedAgentMailAccount, AgentMailProbe> = {
   id: "agentmail",
   meta: {
+    id: "agentmail",
     label: "AgentMail",
+    selectionLabel: "Email (AgentMail)",
+    docsPath: "/channels/agentmail",
     blurb: "Email via AgentMail (agentmail.to)",
+    order: 90,
+    aliases: ["email"],
     quickstartAllowFrom: true,
   },
   capabilities: {

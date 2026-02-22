@@ -21,9 +21,12 @@ export async function setupCustomDomain(params: {
   const account = resolveAgentMailAccount({ cfg: params.cfg, accountId: params.accountId });
   const client = getAgentMailClient(account.apiKey);
 
-  const result = await client.domains.create({ domain: params.domain });
+  const result = await client.domains.create({
+    domain: params.domain,
+    feedbackEnabled: true,
+  });
   return {
-    domainId: result.domainId ?? result.domain_id,
+    domainId: result.domainId,
     status: result.status,
     records: result.records ?? [],
   };
@@ -37,9 +40,11 @@ export async function verifyCustomDomain(params: {
   const account = resolveAgentMailAccount({ cfg: params.cfg, accountId: params.accountId });
   const client = getAgentMailClient(account.apiKey);
 
-  const result = await client.domains.verify(params.domainId);
+  await client.domains.verify(params.domainId);
+  // verify() returns void — fetch the domain to check status
+  const domain = await client.domains.get(params.domainId);
   return {
-    verified: result.status === "verified",
-    status: result.status,
+    verified: domain.status === "verified",
+    status: domain.status,
   };
 }
