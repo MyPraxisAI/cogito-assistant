@@ -241,6 +241,16 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@25.3.0)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
 
+  extensions/agentmail:
+    dependencies:
+      agentmail:
+        specifier: latest
+        version: 0.2.17
+    devDependencies:
+      openclaw:
+        specifier: workspace:*
+        version: link:../..
+
   extensions/bluebubbles:
     devDependencies:
       openclaw:
@@ -3156,6 +3166,10 @@ packages:
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
+
+  agentmail@0.2.17:
+    resolution: {integrity: sha512-ay4UGUlhgv/XV913OHSKLspmNDL7bUhI3lz6nH5x/b+GGrhrXDSt3kY4EnFFYPekDA7cbT4hJZpqFBHk91iyGg==}
+    engines: {node: '>=18.0.0'}
 
   ajv-formats@3.0.1:
     resolution: {integrity: sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==}
@@ -8793,6 +8807,13 @@ snapshots:
       - supports-color
 
   agent-base@7.1.4: {}
+
+  agentmail@0.2.17:
+    dependencies:
+      ws: 8.19.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   ajv-formats@3.0.1(ajv@8.18.0):
     optionalDependencies:

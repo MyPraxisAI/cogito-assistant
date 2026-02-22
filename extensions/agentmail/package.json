@@ -1,0 +1,17 @@
+{
+  "name": "@openclaw/agentmail",
+  "version": "2026.2.22",
+  "description": "OpenClaw AgentMail email channel plugin",
+  "type": "module",
+  "dependencies": {
+    "agentmail": "latest"
+  },
+  "devDependencies": {
+    "openclaw": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
