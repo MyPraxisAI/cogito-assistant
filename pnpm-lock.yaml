@@ -243,6 +243,9 @@ importers:
 
   extensions/agentmail:
     dependencies:
+      '@sinclair/typebox':
+        specifier: 0.34.48
+        version: 0.34.48
       agentmail:
         specifier: latest
         version: 0.2.17
