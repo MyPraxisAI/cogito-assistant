@@ -4,7 +4,7 @@ import {
   type RuntimeEnv,
 } from "openclaw/plugin-sdk";
 import { resolveAgentMailAccount } from "./accounts.js";
-import { formatInboundEmailBody } from "./format.js";
+import { emailHtmlToText, formatInboundEmailBody } from "./format.js";
 import { getAgentMailRuntime } from "./runtime.js";
 import { sendAgentMailMessage } from "./send.js";
 import type {
@@ -102,8 +102,14 @@ async function handleInbound(params: {
   const { message, account, config, runtime, statusSink } = params;
   const core = getAgentMailRuntime();
 
-  const rawBody = message.text?.trim() ?? "";
-  if (!rawBody) return;
+  const rawBody =
+    message.text?.trim() || (message.html ? emailHtmlToText(message.html) : "");
+  if (!rawBody) {
+    runtime.log?.(
+      `agentmail: skipping message ${message.messageId} from ${message.from} — no text or html content`,
+    );
+    return;
+  }
 
   statusSink?.({ lastInboundAt: message.timestamp });
 
@@ -319,8 +325,17 @@ export async function monitorAgentMailProvider(
           return;
         }
 
+        logger.info(
+          `[${account.accountId}] received email from ${message.from} — subject: ${message.subject || "(none)"}, text: ${message.text ? message.text.length + " chars" : "empty"}, html: ${message.html ? message.html.length + " chars" : "empty"}`,
+        );
+
         // Skip messages from our own inbox (avoid echo)
-        if (message.from === `${account.username}@${account.domain}`) {
+        const ownAddress = `${account.username}@${account.domain}`;
+        if (
+          message.from === ownAddress ||
+          message.from.endsWith(`<${ownAddress}>`)
+        ) {
+          logger.debug?.(`[${account.accountId}] skipping echo from own inbox`);
           return;
         }
 
