@@ -85,6 +85,42 @@
 - beta: prerelease tags `vYYYY.M.D-beta.N`, npm dist-tag `beta` (may ship without macOS app).
 - dev: moving head on `main` (no tag; git checkout main).
 
+## Development and Deploy Policy (Codex + Claude Code)
+
+This policy is mandatory for all coding agents (Codex and Claude Code).
+
+- Development flow:
+  - Work in feature branches.
+  - Merge into `main` via PR with green checks.
+  - Do not treat local git `main` as deployed production by default.
+
+- Change classification:
+  - `config` changes: runtime config only (for example `openclaw.json`, cron job config, provider keys, prompt text, or operational config outside `src/**`).
+  - `code` changes: any changes in `src/**`, `extensions/**`, `scripts/**`, app code, build/runtime behavior, or shared logic.
+
+- Predeploy gate (required):
+  - Run `scripts/predeploy-check.sh --type config` for config-only deploys.
+  - Run `scripts/predeploy-check.sh --type code` for code deploys.
+
+- Deploy rules:
+  - Config deploys: no npm release required; apply config and restart gateway.
+  - Code deploys: publish a new stable npm build first, then deploy exact version.
+  - Mac Mini deploy command must pin version:
+    `scripts/deploy-macmini-stable.sh user@gateway-host <version>`
+  - Never deploy floating channels/tags (`latest`, `beta`, `dev`) directly to production.
+
+- Predeploy checklist (Mac Mini):
+  - Update local `main` and confirm it matches `origin/main`.
+  - Classify deploy as `config` or `code`.
+  - Run the required gate:
+    `scripts/predeploy-check.sh --type config` or `scripts/predeploy-check.sh --type code`.
+  - If `config`: apply config and restart gateway (no npm release).
+  - If `code`: publish a new stable npm version from current `main`.
+  - Deploy using an exact pinned version only:
+    `scripts/deploy-macmini-stable.sh user@gateway-host <version>`.
+  - Verify health after deploy:
+    `openclaw doctor`, `openclaw health`, `openclaw channels status --probe`.
+
 ## Testing Guidelines
 
 - Framework: Vitest with V8 coverage thresholds (70% lines/branches/functions/statements).
