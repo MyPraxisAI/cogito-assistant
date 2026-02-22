@@ -109,6 +109,18 @@ This policy is mandatory for all coding agents (Codex and Claude Code).
     `scripts/deploy-macmini-stable.sh user@gateway-host <version>`
   - Never deploy floating channels/tags (`latest`, `beta`, `dev`) directly to production.
 
+- Predeploy checklist (Mac Mini):
+  - Update local `main` and confirm it matches `origin/main`.
+  - Classify deploy as `config` or `code`.
+  - Run the required gate:
+    `scripts/predeploy-check.sh --type config` or `scripts/predeploy-check.sh --type code`.
+  - If `config`: apply config and restart gateway (no npm release).
+  - If `code`: publish a new stable npm version from current `main`.
+  - Deploy using an exact pinned version only:
+    `scripts/deploy-macmini-stable.sh user@gateway-host <version>`.
+  - Verify health after deploy:
+    `openclaw doctor`, `openclaw health`, `openclaw channels status --probe`.
+
 ## Testing Guidelines
 
 - Framework: Vitest with V8 coverage thresholds (70% lines/branches/functions/statements).
