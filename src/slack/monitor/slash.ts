@@ -147,6 +147,13 @@ function parseSlackCommandArgValue(raw?: string | null): {
   };
 }
 
+function buildSlackArgMenuOptions(choices: EncodedMenuChoice[]) {
+  return choices.map((choice) => ({
+    text: { type: "plain_text", text: choice.label.slice(0, 75) },
+    value: choice.value,
+  }));
+}
+
 function buildSlackCommandArgMenuBlocks(params: {
   title: string;
   command: string;
@@ -185,10 +192,7 @@ function buildSlackCommandArgMenuBlocks(params: {
               type: "overflow",
               action_id: SLACK_COMMAND_ARG_ACTION_ID,
               confirm: buildSlackArgMenuConfirm({ command: params.command, arg: params.arg }),
-              options: encodedChoices.map((choice) => ({
-                text: { type: "plain_text", text: choice.label.slice(0, 75) },
-                value: choice.value,
-              })),
+              options: buildSlackArgMenuOptions(encodedChoices),
             },
           ],
         },
@@ -238,10 +242,7 @@ function buildSlackCommandArgMenuBlocks(params: {
                     text:
                       index === 0 ? `Choose ${params.arg}` : `Choose ${params.arg} (${index + 1})`,
                   },
-                  options: choices.map((choice) => ({
-                    text: { type: "plain_text", text: choice.label.slice(0, 75) },
-                    value: choice.value,
-                  })),
+                  options: buildSlackArgMenuOptions(choices),
                 },
               ],
             }),
@@ -360,6 +361,7 @@ export async function registerSlackMonitorSlashCommands(params: {
             allowList: effectiveAllowFromLower,
             id: command.user_id,
             name: senderName,
+            allowNameMatching: ctx.allowNameMatching,
           });
           const allowMatchMeta = formatAllowlistMatchMeta(allowMatch);
           if (!allowMatch.allowed) {
@@ -445,6 +447,7 @@ export async function registerSlackMonitorSlashCommands(params: {
             allowList: channelConfig?.users,
             userId: command.user_id,
             userName: senderName,
+            allowNameMatching: ctx.allowNameMatching,
           })
         : false;
       if (channelUsersAllowlistConfigured && !channelUserAllowed) {
@@ -459,6 +462,7 @@ export async function registerSlackMonitorSlashCommands(params: {
         allowList: effectiveAllowFromLower,
         id: command.user_id,
         name: senderName,
+        allowNameMatching: ctx.allowNameMatching,
       }).allowed;
       // DMs: allow chatting in dmPolicy=open, but keep privileged command gating intact by setting
       // CommandAuthorized based on allowlists/access-groups (downstream decides which commands need it).

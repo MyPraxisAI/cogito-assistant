@@ -8,7 +8,7 @@ import type { TypingMode } from "../../config/types.js";
 import { withStateDirEnv } from "../../test-helpers/state-dir-env.js";
 import type { TemplateContext } from "../templating.js";
 import type { GetReplyOptions } from "../types.js";
-import type { FollowupRun, QueueSettings } from "./queue.js";
+import { enqueueFollowupRun, type FollowupRun, type QueueSettings } from "./queue.js";
 import { createMockTypingController } from "./test-helpers.js";
 
 type AgentRunParams = {
@@ -86,6 +86,7 @@ beforeAll(async () => {
 beforeEach(() => {
   state.runEmbeddedPiAgentMock.mockClear();
   state.runCliAgentMock.mockClear();
+  vi.mocked(enqueueFollowupRun).mockClear();
   vi.stubEnv("OPENCLAW_TEST_FAST", "1");
 });
 
@@ -98,6 +99,9 @@ function createMinimalRun(params?: {
   storePath?: string;
   typingMode?: TypingMode;
   blockStreamingEnabled?: boolean;
+  isActive?: boolean;
+  shouldFollowup?: boolean;
+  resolvedQueueMode?: string;
   runOverrides?: Partial<FollowupRun["run"]>;
 }) {
   const typing = createMockTypingController();
@@ -106,7 +110,9 @@ function createMinimalRun(params?: {
     Provider: "whatsapp",
     MessageSid: "msg",
   } as unknown as TemplateContext;
-  const resolvedQueue = { mode: "interrupt" } as unknown as QueueSettings;
+  const resolvedQueue = {
+    mode: params?.resolvedQueueMode ?? "interrupt",
+  } as unknown as QueueSettings;
   const sessionKey = params?.sessionKey ?? "main";
   const followupRun = {
     prompt: "hello",
@@ -147,8 +153,8 @@ function createMinimalRun(params?: {
         queueKey: "main",
         resolvedQueue,
         shouldSteer: false,
-        shouldFollowup: false,
-        isActive: false,
+        shouldFollowup: params?.shouldFollowup ?? false,
+        isActive: params?.isActive ?? false,
         isStreaming: false,
         opts,
         typing,
@@ -273,6 +279,39 @@ async function runReplyAgentWithBase(params: {
     typingMode: params.typingMode ?? "instant",
   });
 }
+
+describe("runReplyAgent heartbeat followup guard", () => {
+  it("drops heartbeat runs when another run is active", async () => {
+    const { run, typing } = createMinimalRun({
+      opts: { isHeartbeat: true },
+      isActive: true,
+      shouldFollowup: true,
+      resolvedQueueMode: "collect",
+    });
+
+    const result = await run();
+
+    expect(result).toBeUndefined();
+    expect(vi.mocked(enqueueFollowupRun)).not.toHaveBeenCalled();
+    expect(state.runEmbeddedPiAgentMock).not.toHaveBeenCalled();
+    expect(typing.cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it("still enqueues non-heartbeat runs when another run is active", async () => {
+    const { run } = createMinimalRun({
+      opts: { isHeartbeat: false },
+      isActive: true,
+      shouldFollowup: true,
+      resolvedQueueMode: "collect",
+    });
+
+    const result = await run();
+
+    expect(result).toBeUndefined();
+    expect(vi.mocked(enqueueFollowupRun)).toHaveBeenCalledTimes(1);
+    expect(state.runEmbeddedPiAgentMock).not.toHaveBeenCalled();
+  });
+});
 
 describe("runReplyAgent typing (heartbeat)", () => {
   async function withTempStateDir<T>(fn: (stateDir: string) => Promise<T>): Promise<T> {
@@ -556,17 +595,16 @@ describe("runReplyAgent typing (heartbeat)", () => {
     const deliveryOrder: string[] = [];
     const onToolResult = vi.fn(async (payload: { text?: string }) => {
       // Simulate variable network latency: first result is slower than second
-      const delay = payload.text === "first" ? 50 : 10;
+      const delay = payload.text === "first" ? 5 : 1;
       await new Promise((r) => setTimeout(r, delay));
       deliveryOrder.push(payload.text ?? "");
     });
 
     state.runEmbeddedPiAgentMock.mockImplementationOnce(async (params: AgentRunParams) => {
-      // Fire two tool results without awaiting — simulates concurrent tool completion
-      void params.onToolResult?.({ text: "first", mediaUrls: [] });
-      void params.onToolResult?.({ text: "second", mediaUrls: [] });
-      // Small delay to let the chain settle before returning
-      await new Promise((r) => setTimeout(r, 150));
+      // Fire two tool results without awaiting each one; await both at the end.
+      const first = params.onToolResult?.({ text: "first", mediaUrls: [] });
+      const second = params.onToolResult?.({ text: "second", mediaUrls: [] });
+      await Promise.all([first, second]);
       return { payloads: [{ text: "final" }], meta: {} };
     });
 
@@ -591,9 +629,9 @@ describe("runReplyAgent typing (heartbeat)", () => {
     });
 
     state.runEmbeddedPiAgentMock.mockImplementationOnce(async (params: AgentRunParams) => {
-      void params.onToolResult?.({ text: "first", mediaUrls: [] });
-      void params.onToolResult?.({ text: "second", mediaUrls: [] });
-      await new Promise((r) => setTimeout(r, 50));
+      const first = params.onToolResult?.({ text: "first", mediaUrls: [] });
+      const second = params.onToolResult?.({ text: "second", mediaUrls: [] });
+      await Promise.allSettled([first, second]);
       return { payloads: [{ text: "final" }], meta: {} };
     });
 
