@@ -205,9 +205,12 @@ Then open a new terminal (or `rehash` in zsh / `hash -r` in bash).
 
 ## Update / uninstall
 
-<CardGroup cols={3}>
+<CardGroup cols={4}>
   <Card title="Updating" href="/install/updating" icon="refresh-cw">
     Keep OpenClaw up to date.
+  </Card>
+  <Card title="Mac Mini flow" href="/install/updating#macbook-to-github-to-mac-mini-workflow" icon="server">
+    MacBook to GitHub to Mac Mini production flow.
   </Card>
   <Card title="Migrating" href="/install/migrating" icon="arrow-right">
     Move to a new machine.

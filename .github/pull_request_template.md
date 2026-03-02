@@ -16,6 +16,17 @@ Describe the problem and fix in 2–5 bullets:
 - [ ] Security hardening
 - [ ] Chore/infra
 
+## Deploy Classification (required)
+
+- [ ] Config-only change (no stable npm release needed)
+- [ ] Code/runtime change (requires new stable npm release before production deploy)
+
+If production deploy is needed, include:
+
+- Target deploy type: `config` or `code`
+- Predeploy command run: `scripts/predeploy-check.sh --type <config|code>`
+- Target production version (exact): `openclaw@...`
+
 ## Scope (select all touched areas)
 
 - [ ] Gateway / orchestration

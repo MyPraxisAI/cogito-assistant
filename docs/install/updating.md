@@ -43,6 +43,32 @@ Notes:
   - Credentials: `~/.openclaw/credentials/`
   - Workspace: `~/.openclaw/workspace`
 
+## MacBook to GitHub to Mac Mini workflow
+
+If development happens on a MacBook and production runs on a Mac Mini, use this
+flow:
+
+1. Develop on MacBook in feature branches and merge via PR to `main`.
+2. Release a stable npm build (`latest`) from CI/release flow.
+3. Deploy to Mac Mini from the MacBook with SSH using an exact version:
+
+```bash
+scripts/predeploy-check.sh --type code
+scripts/deploy-macmini-stable.sh user@gateway-host 2026.2.22
+```
+
+The script rejects floating tags (`latest`, `beta`, `dev`) to keep production
+fully pinned. Rollback is the same command with a known-good version.
+
+For config-only changes (for example runtime config and cron config), run:
+
+```bash
+scripts/predeploy-check.sh --type config
+```
+
+This keeps production pinned to stable npm artifacts instead of live git state
+on the Mac Mini.
+
 ## Update (global install)
 
 Global install (pick one):
